@@ -55,20 +55,21 @@ export function prixEffectif(prix: Prix): number {
   throw new Error('TP 2 — prixEffectif reste à écrire');
 }
 
-/** TODO TP 2 — étape 1 */
+/** TODO TP 2 — étape 1 : un produit est disponible dès une unité en stock. */
 export function estDisponible(produit: Produit): boolean {
   throw new Error('TP 2 — estDisponible reste à écrire');
 }
 
-/** TODO TP 2 — étape 1 */
+// --- Fourni : à lire avant d'écrire les deux fonctions ci-dessus. -----------
+
 export function estEnPromotion(produit: Produit): boolean {
-  throw new Error('TP 2 — estEnPromotion reste à écrire');
+  return produit.prix.remisePourcent !== null;
 }
 
 /**
- * TODO TP 2 — étape 1
- * Attention aux valeurs de seuil : un test les vérifie explicitement.
+ * Les seuils sont inclusifs : un meuble de 50 kg exactement bascule déjà sur
+ * le circuit spécialisé. C'est une décision métier, pas un détail technique.
  */
 export function estVolumineux(gabarit: Gabarit): boolean {
-  throw new Error('TP 2 — estVolumineux reste à écrire');
+  return gabarit.poidsKg >= POIDS_VOLUMINEUX_KG || gabarit.volumeM3 >= VOLUME_VOLUMINEUX_M3;
 }

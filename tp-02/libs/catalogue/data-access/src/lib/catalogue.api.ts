@@ -39,33 +39,32 @@ export class CatalogueApi {
   private readonly http = inject(HttpClient);
   private readonly base = inject(API_URL);
 
-  /**
-   * TODO TP 2 — étape 3
-   * GET {base}/produits avec les paramètres issus des filtres, puis mapping
-   * de chaque DTO vers le domaine.
-   */
   async rechercher(filtres: Filtres): Promise<PageProduits> {
-    throw new Error('TP 2 — CatalogueApi.rechercher reste à écrire');
+    const dto = await firstValueFrom(
+      this.http.get<PageDto<ProduitDto>>(`${this.base}/produits`, { params: versParams(filtres) }),
+    );
+    return {
+      items: dto.items.map(versProduit),
+      total: dto.total,
+      facettes: dto.facettes,
+    };
   }
 
-  /** TODO TP 2 — étape 3 : GET {base}/produits/{id} */
   async parId(id: string): Promise<Produit> {
-    throw new Error('TP 2 — CatalogueApi.parId reste à écrire');
+    const dto = await firstValueFrom(this.http.get<ProduitDto>(`${this.base}/produits/${id}`));
+    return versProduit(dto);
   }
 }
 
 /**
- * TODO TP 2 — étape 3
- * Traduit les filtres en paramètres de requête.
- *
- * Règles vérifiées par les tests :
- *   - `tri` et `page` sont toujours envoyés ;
- *   - les critères non renseignés (null, chaîne vide) ne sont PAS envoyés ;
- *   - la recherche est nettoyée de ses espaces avant envoi.
- *
- * Exportée à part pour être testable sans HttpClient — et réutilisable par
- * httpResource au TP 7.
+ * Exportée à part pour être testable sans HttpClient, et réutilisable telle
+ * quelle par httpResource au TP 7.
  */
 export function versParams(filtres: Filtres): HttpParams {
-  throw new Error('TP 2 — versParams reste à écrire');
+  let params = new HttpParams().set('tri', filtres.tri).set('page', filtres.page);
+  if (filtres.recherche.trim()) params = params.set('q', filtres.recherche.trim());
+  if (filtres.piece) params = params.set('piece', filtres.piece);
+  if (filtres.matiere) params = params.set('matiere', filtres.matiere);
+  if (filtres.prixMax !== null) params = params.set('prixMax', filtres.prixMax);
+  return params;
 }

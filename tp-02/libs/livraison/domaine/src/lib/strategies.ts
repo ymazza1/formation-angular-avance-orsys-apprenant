@@ -7,53 +7,50 @@ import {
   TARIF_VOLUMINEUX_EUROS,
 } from './strategie-livraison';
 
-/**
- * TODO TP 2 — étape 7
- * Meuble lourd ou encombrant : transporteur spécialisé, tarif fixe.
- * Les seuils sont ceux de estVolumineux (50 kg ou 1 m³, inclus).
- */
+/** Meuble lourd ou encombrant : transporteur spécialisé, tarif fixe. */
 export class LivraisonVolumineux implements StrategieLivraison {
   readonly nom = 'volumineux';
 
   supporte(ligne: LigneLivrable): boolean {
-    throw new Error('TP 2 — LivraisonVolumineux.supporte reste à écrire');
+    return ligne.poidsKg >= 50 || ligne.volumeM3 >= 1;
   }
 
-  cout(ligne: LigneLivrable): number {
-    throw new Error('TP 2 — LivraisonVolumineux.cout reste à écrire');
+  cout(): number {
+    return TARIF_VOLUMINEUX_EUROS;
   }
 }
 
-/**
- * TODO TP 2 — étape 7
- * Colis classique : tarif de base, plus un supplément par unité supplémentaire.
- * C'est le cas général : il accepte tout.
- */
+/** Colis classique : tarif de base, dégressif à la quantité. C'est le cas général. */
 export class LivraisonStandard implements StrategieLivraison {
   readonly nom = 'standard';
 
-  supporte(ligne: LigneLivrable): boolean {
-    throw new Error('TP 2 — LivraisonStandard.supporte reste à écrire');
+  supporte(): boolean {
+    return true;
   }
 
   cout(ligne: LigneLivrable): number {
-    throw new Error('TP 2 — LivraisonStandard.cout reste à écrire');
+    return TARIF_STANDARD_EUROS + (ligne.quantite - 1) * SUPPLEMENT_PAR_UNITE_EUROS;
   }
 }
 
 /**
- * TODO TP 2 — étape 7
- * Coût total de livraison d'un ensemble de lignes.
- *
- * Règles, dans cet ordre :
- *   1. au-delà du seuil de franco sur le MONTANT TOTAL, c'est offert ;
- *   2. sinon, chaque ligne est traitée par la PREMIÈRE stratégie qui l'accepte ;
- *   3. si aucune stratégie n'accepte une ligne, c'est une erreur — pas un zéro ;
- *   4. le total est arrondi au centime (attention aux flottants : 9.9 + 49).
+ * La première stratégie qui accepte la ligne l'emporte : l'ordre des providers
+ * est donc signifiant, et le cas général vient toujours en dernier.
  */
 export function coutLivraison(
   lignes: readonly LigneLivrable[],
   strategies: readonly StrategieLivraison[],
 ): number {
-  throw new Error('TP 2 — coutLivraison reste à écrire');
+  const montantTotal = lignes.reduce((total, ligne) => total + ligne.montant, 0);
+  if (montantTotal >= SEUIL_FRANCO_EUROS) return 0;
+
+  const cout = lignes.reduce((total, ligne) => {
+    const strategie = strategies.find((s) => s.supporte(ligne));
+    if (!strategie) {
+      throw new Error(`Aucune stratégie de livraison pour la ligne ${JSON.stringify(ligne)}`);
+    }
+    return total + strategie.cout(ligne);
+  }, 0);
+
+  return Math.round(cout * 100) / 100;
 }

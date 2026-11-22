@@ -24,28 +24,28 @@ export const FILTRES_VIDES: Filtres = {
 export const LONGUEUR_MINIMALE_RECHERCHE = 2;
 
 /**
- * TODO TP 2 — étape 2
- * Applique une modification aux filtres.
- * Règle métier : toute modification de la SÉLECTION ramène en page 1 ;
- * changer uniquement de page ne touche pas à la sélection.
- * Les filtres reçus ne doivent pas être mutés.
+ * Toute modification de la sélection ramène à la première page : sans cette
+ * règle, changer de pièce alors qu'on est en page 3 affiche une liste vide.
  */
 export function appliquer(filtres: Filtres, modification: Partial<Filtres>): Filtres {
-  throw new Error('TP 2 — appliquer reste à écrire');
+  const changeLaSelection = !('page' in modification);
+  return {
+    ...filtres,
+    ...modification,
+    page: changeLaSelection ? 1 : (modification.page ?? filtres.page),
+  };
 }
 
-/**
- * TODO TP 2 — étape 2
- * Vrai si aucun critère de sélection n'est posé. Le tri et la page n'en sont pas.
- */
 export function estVide(filtres: Filtres): boolean {
-  throw new Error('TP 2 — estVide reste à écrire');
+  return (
+    filtres.recherche === '' &&
+    filtres.piece === null &&
+    filtres.matiere === null &&
+    filtres.prixMax === null
+  );
 }
 
-/**
- * TODO TP 2 — étape 2
- * Vrai si la recherche est vide, ou suffisamment longue pour être envoyée.
- */
 export function rechercheExploitable(recherche: string): boolean {
-  throw new Error('TP 2 — rechercheExploitable reste à écrire');
+  const nettoyee = recherche.trim();
+  return nettoyee.length === 0 || nettoyee.length >= LONGUEUR_MINIMALE_RECHERCHE;
 }

@@ -26,7 +26,7 @@ export class CatalogueFacade {
   readonly erreur = this._erreur.asReadonly();
 
   /**
-   * TODO TP 2 — étape 4
+   * TODO TP 2 — étape 3
    * Dériver ces trois valeurs depuis _page. Aucune ne doit être stockée dans
    * un signal en écriture : ce sont des valeurs dérivées.
    */
@@ -43,7 +43,7 @@ export class CatalogueFacade {
   });
 
   /**
-   * TODO TP 2 — étape 4
+   * TODO TP 2 — étape 3
    * Charge la page correspondant aux filtres courants.
    * - passe en chargement, efface l'erreur précédente ;
    * - en cas d'échec : erreur renseignée, page vidée, et surtout PAS de rejet
@@ -55,7 +55,7 @@ export class CatalogueFacade {
   }
 
   // --- commandes -------------------------------------------------------------
-  // TODO TP 2 — étape 4 : chacune modifie les filtres via appliquer(), puis
+  // TODO TP 2 — étape 3 : chacune modifie les filtres via appliquer(), puis
   // déclenche un chargement.
 
   rechercher(recherche: string): void {

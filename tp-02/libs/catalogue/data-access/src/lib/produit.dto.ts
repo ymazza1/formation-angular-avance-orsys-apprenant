@@ -34,7 +34,7 @@ export interface FacetteDto {
 }
 
 /**
- * TODO TP 2 — étape 3
+ * TODO TP 2 — étape 2
  * Seul endroit du code qui a le droit de connaître à la fois le DTO et le
  * modèle de domaine. Si `prix_ttc` apparaît ailleurs, c'est une fuite.
  */

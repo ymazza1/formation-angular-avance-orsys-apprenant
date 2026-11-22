@@ -12,10 +12,13 @@ export const STRATEGIES_LIVRAISON = new InjectionToken<readonly StrategieLivrais
 );
 
 /**
- * TODO TP 2 — étape 7
- * Enregistrer les deux stratégies en multi-providers sur STRATEGIES_LIVRAISON.
- * L'ordre compte : la première qui accepte une ligne l'emporte.
+ * `multi: true` : plusieurs providers pour un même jeton, injectés sous forme
+ * de tableau, dans l'ordre de déclaration. Ajouter une règle de livraison
+ * revient donc à ajouter une ligne ici et un fichier dans le domaine.
  */
 export function fournirStrategiesLivraison(): Provider[] {
-  throw new Error('TP 2 — fournirStrategiesLivraison reste à écrire');
+  return [
+    { provide: STRATEGIES_LIVRAISON, multi: true, useClass: LivraisonVolumineux },
+    { provide: STRATEGIES_LIVRAISON, multi: true, useClass: LivraisonStandard },
+  ];
 }
