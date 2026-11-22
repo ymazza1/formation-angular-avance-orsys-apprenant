@@ -15,7 +15,7 @@ export default [
         {
           enforceBuildableLibDependency: true,
           allow: [],
-          // TODO TP 1 — étape 4
+          // TODO TP 1 — étape 2
           // Déclarer ici les contraintes de dépendance entre tags.
           // Tant que ce tableau est vide, la règle ne protège rien :
           // n'importe quelle lib peut importer n'importe quelle autre.

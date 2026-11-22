@@ -4,7 +4,10 @@
   "projectType": "library",
   "prefix": "mc",
   "sourceRoot": "libs/catalogue/feature/src",
-  "tags": [],
+  "tags": [
+    "type:feature",
+    "domaine:catalogue"
+  ],
   "targets": {
     "test": {
       "cache": true,

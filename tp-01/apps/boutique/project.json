@@ -4,7 +4,10 @@
   "projectType": "application",
   "prefix": "mc",
   "sourceRoot": "apps/boutique/src",
-  "tags": [],
+  "tags": [
+    "type:app",
+    "domaine:boutique"
+  ],
   "targets": {
     "build": {
       "executor": "@angular/build:application",

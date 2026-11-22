@@ -4,7 +4,10 @@
   "projectType": "library",
   "prefix": "mc",
   "sourceRoot": "libs/catalogue/data-access/src",
-  "tags": [],
+  "tags": [
+    "type:data-access",
+    "domaine:catalogue"
+  ],
   "targets": {
     "test": {
       "cache": true,

@@ -4,7 +4,10 @@
   "projectType": "library",
   "prefix": "mc",
   "sourceRoot": "libs/catalogue/ui/src",
-  "tags": [],
+  "tags": [
+    "type:ui",
+    "domaine:catalogue"
+  ],
   "targets": {
     "test": {
       "cache": true,
