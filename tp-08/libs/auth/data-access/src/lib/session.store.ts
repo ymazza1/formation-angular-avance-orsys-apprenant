@@ -22,7 +22,7 @@ interface ReponseAuth {
  *
  * C'est un compromis, pas une vérité : à discuter avec le contexte du projet.
  *
- * TODO TP 8 — étape 2
+ * TODO TP 8 — étape 1
  */
 @Injectable({ providedIn: 'root' })
 export class SessionStore {
@@ -40,13 +40,13 @@ export class SessionStore {
   readonly nom = computed(() => this._session()?.nom ?? null);
 
   /** Jeton utilisable maintenant, ou null s'il n'y en a pas ou s'il a expiré. */
-  /** TODO TP 8 — étape 2 : null si absent OU expiré. */
+  /** TODO TP 8 — étape 1 : null si absent OU expiré. */
   jetonValide(maintenant = Date.now()): string | null {
     throw new Error('TP 8 — jetonValide reste à écrire');
   }
 
   /**
-   * TODO TP 8 — étape 2
+   * TODO TP 8 — étape 1
    * POST {base}/auth/connexion. Renvoie true/false, ne rejette jamais :
    * un échec d'identifiants est un état, pas une exception.
    */
@@ -55,7 +55,7 @@ export class SessionStore {
   }
 
   /**
-   * TODO TP 8 — étape 2
+   * TODO TP 8 — étape 1
    * POST {base}/auth/refresh. Sans session courante, ne fait AUCUNE requête.
    * Un échec doit déconnecter proprement plutôt que laisser une session morte.
    */

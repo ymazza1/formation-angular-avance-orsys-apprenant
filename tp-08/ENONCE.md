@@ -1,79 +1,78 @@
 # TP 8 — Sécuriser le back-office
 
-**Durée** 50 min
+**Durée** 50 min · **Rouges au départ** 26, dont **20 à écrire** · tous les autres tests sont déjà verts
 
 ## Le contexte
 
 Maison&Co a besoin d'un espace d'administration : chiffre d'affaires, commandes,
-ruptures de stock. Réservé aux administrateurs.
+ruptures de stock. Réservé aux administrateurs : un client connecté ne doit pas
+y accéder, un visiteur anonyme non plus.
 
 La vraie question n'est pas « comment cacher le menu », c'est **« comment faire
 en sorte que le code du back-office ne soit même pas téléchargé par un
 visiteur »**.
 
+Comptes de test : `client@maison.co` / `client` et `admin@maison.co` / `admin`.
+
+## Ce qui vous est fourni
+
+Lisez-le avant d'écrire : c'est la forme cible.
+
+| Fichier | Rôle |
+| --- | --- |
+| `libs/auth/domaine/.../session.ts` | Le domaine de la session : marge d'expiration, durée → instant, rôle inconnu → `client` (7 tests verts) |
+| `libs/admin/feature/.../admin.page.ts` | Le tableau de bord : `httpResource` avec la garde `hasValue()`, bloc différé en `@defer` |
+| `apps/boutique/.../app.ts` | La barre de connexion dans l'en-tête |
+| `apps/boutique/.../app.config.ts` | `fournirStrategiesLivraison()` déjà enregistré |
+
+La page admin est écrite, mais personne ne peut encore l'atteindre : c'est le
+travail des trois étapes.
+
 ## Comment savoir si vous avez fini
 
 ```bash
-npx nx test auth-domaine        # 7 rouges au départ
-npx nx test auth-data-access    # 20 rouges
-npx nx run-many -t lint         # doit rester vert
+npx nx run-many -t test      # 26 rouges au départ, tous verts à la fin
+npx nx run-many -t lint      # doit rester vert en permanence
+npm run test:structure       # vert
 ```
 
-27 tests.
+**Pourquoi 26 rouges et pas 20 ?** Six tests *bonus* utilisent le store et
+l'intercepteur que vous allez écrire : ils passent seuls au vert, vous n'avez
+rien à y écrire. Ça se lit dans le compteur :
 
-## Trois nouvelles bibliothèques
+| Après… | Rouges restants |
+| --- | --- |
+| l'ouverture du projet | 26 |
+| l'étape 1 | 15 (9 écrits + 2 bonus qui passent seuls) |
+| l'étape 2 | 5 (6 écrits + 4 bonus qui passent seuls) |
+| l'étape 3 | 0 |
 
-```
-libs/auth/domaine/        type:domaine,     domaine:auth
-libs/auth/data-access/    type:data-access, domaine:auth
-libs/admin/feature/       type:feature,     domaine:admin
-```
+Les fichiers `*.spec.ts` ne sont pas à modifier : ce sont vos spécifications.
+Les fonctions à écrire contiennent un `TODO TP 8` et lèvent une erreur
+explicite tant qu'elles ne sont pas écrites.
 
-Comptes de test : `client@maison.co` / `client` et `admin@maison.co` / `admin`.
+## Étape 1 — Le store de session (9 tests)
 
-## Étape 1 — Le domaine de la session (7 tests)
+`libs/auth/data-access/src/lib/session.store.ts`
 
-`libs/auth/domaine/src/lib/session.ts`
+Trois méthodes : `jetonValide`, `connexion`, `rafraichir`. Elles s'appuient sur
+`estUtilisable` et `versSession`, déjà écrites dans le domaine.
 
-Trois fonctions à écrire : `estExpiree`, `estUtilisable`, `versSession`.
+Le jeton vit **en mémoire**, pas dans `localStorage` : un script tiers peut lire
+le stockage du navigateur. Le prix à payer est qu'un rechargement de page
+déconnecte. C'est un compromis, pas une vérité (voir le bonus sur le stockage).
 
-Deux subtilités que les tests attrapent :
-
-**La marge d'expiration.** Un jeton qui expire dans deux secondes est considéré
-comme déjà périmé. Sans cette marge, on part en requête avec un jeton qui
-expirera en vol — et on récolte un 401 évitable.
-
-**Durée contre instant.** L'API renvoie `expireDans: 30` (secondes) ; le domaine
-manipule `expireLe` (instant). La conversion se fait une fois, à la frontière.
-C'est la même discipline que le mapping DTO du TP 2.
-
-## Étape 2 — Le store de session (9 tests)
-
-`session.store.ts`
-
-Le jeton vit **en mémoire**, pas dans `localStorage`.
-
-| | localStorage | mémoire |
-| --- | --- | --- |
-| Lisible par un script tiers | oui | non |
-| Survit au rechargement | oui | non |
-| Survit à un XSS | non | non |
-
-Aucune option n'est parfaite. Le choix retenu ici — mémoire pour le jeton
-d'accès, jeton de rafraîchissement pour reconnecter — est un compromis
-défendable, pas une vérité. Sur un vrai projet, le jeton de rafraîchissement
-irait dans un cookie `HttpOnly` posé par le serveur.
-
-`connexion` et `rafraichir` renvoient un booléen et **ne rejettent jamais** :
-un échec d'identifiants est un état d'interface, pas une exception.
+`connexion` et `rafraichir` renvoient un booléen et **ne rejettent jamais** : un
+échec d'identifiants est un état d'interface, pas une exception. C'est la même
+discipline que `charger()` au TP 2.
 
 Un test à lire attentivement : « ne rafraîchit pas sans session ». Sans garde,
 on envoie une requête de rafraîchissement avec `undefined` — et on récolte un
-401 qui déclenche… un rafraîchissement.
+401.
 
-## Étape 3 — L'intercepteur (6 tests)
+## Étape 2 — L'intercepteur (6 tests)
 
-`auth.interceptor.ts`
+`libs/auth/data-access/src/lib/auth.interceptor.ts`
 
 ```ts
 export const authInterceptor: HttpInterceptorFn = (requete, suivant) => { … };
@@ -89,15 +88,16 @@ Trois conditions avant d'ajouter le jeton, chacune couverte par un test :
 3. **Y a-t-il un jeton valide ?** `jetonValide()` renvoie `null` si absent ou
    périmé.
 
-Branchez-le ensuite dans `app.config.ts` :
+Puis branchez-le dans `apps/boutique/src/app/app.config.ts` — un intercepteur
+non branché ne fait rien :
 
 ```ts
 provideHttpClient(withInterceptors([authInterceptor])),
 ```
 
-## Étape 4 — Le guard, et pourquoi `canMatch` (5 tests)
+## Étape 3 — Le guard, et pourquoi `canMatch` (5 tests)
 
-`admin.guard.ts` puis `app.routes.ts`
+`libs/auth/data-access/src/lib/admin.guard.ts` puis `apps/boutique/src/app/app.routes.ts`
 
 ```ts
 export const estAdmin: CanMatchFn = () => { … };
@@ -116,7 +116,7 @@ Un guard renvoie `true`, `false`, ou un `UrlTree` — qui vaut redirection.
 Avec `canActivate`, le code de votre back-office atterrit chez tous vos
 visiteurs. Ils ne le voient pas, mais ils l'ont — et un curieux peut le lire.
 
-Déclarez la route :
+Déclarez deux routes dans `app.routes.ts` :
 
 ```ts
 {
@@ -126,61 +126,41 @@ Déclarez la route :
 },
 ```
 
+et **la cible de la redirection du guard**, `/connexion`. Sans route, la
+redirection échoue (`NG04002`) et un visiteur qui ouvre `/admin` directement
+tombe sur une page vide. La barre de connexion est dans l'en-tête : redirigez
+vers la racine.
+
 ### La vérification qui compte
 
-1. Ouvrez l'onglet **Réseau**, videz-le.
-2. Naviguez vers `/admin` **sans être connecté**.
-3. Cherchez un chunk `admin-page`. Il ne doit pas exister.
-4. Connectez-vous en admin, réessayez : il apparaît.
-
-## Étape 5 — Le tableau de bord et `@defer`
-
-`admin.page.ts`
-
-Les indicateurs viennent de `httpResource` — même modèle qu'au TP 7, **garde
-`hasValue()` comprise**. Si vous l'oubliez, coupez l'API et regardez ce qui se
-passe.
-
-Le bloc « ventes par pièce » est différé :
-
-```html
-@defer (on viewport) {
-  …
-} @placeholder {
-  <div class="squelette" aria-hidden="true">…</div>
-} @loading (after 100ms) {
-  <p aria-live="polite">Chargement du détail…</p>
-}
-```
-
-Sur cette page le gain est anecdotique. Le mécanisme est le même pour un
-graphique de 200 ko — et c'est ça qu'il faut retenir.
-
-`@placeholder` réserve la place : sans lui, l'apparition du bloc décale la page
-et dégrade le CLS. On y reviendra au TP 10.
-
-## Étape 6 — Vérifier
-
-Avec l'API en mode jeton court, pour voir l'expiration en direct :
+Lancez l'API et l'application **en développement** (jamais sur le build de
+production : les noms de chunks y sont hachés, le filtre ne montrerait rien).
 
 ```bash
-cd api && npm run start:jeton-court     # jeton valable 10 secondes
+npm run api
+npx nx serve boutique
 ```
 
-- `/admin` sans connexion : redirection, et aucun chunk admin téléchargé ;
-- connecté en client : même chose — être connecté ne suffit pas ;
-- connecté en admin : le tableau de bord s'affiche ;
-- attendez dix secondes puis rechargez les indicateurs : le jeton a expiré,
-  l'intercepteur ne l'envoie plus, l'API répond 401.
+1. Ouvrez l'onglet **Réseau**, videz-le, filtrez sur `admin.page`.
+2. Sans être connecté, ouvrez `/admin` : vous arrivez sur le catalogue, formulaire
+   de connexion visible, et **aucun** chunk `admin.page`.
+3. Connectez-vous en client : même résultat.
+4. Connectez-vous en admin, cliquez sur le lien « back-office » : le chunk
+   apparaît et le tableau de bord s'affiche.
 
-Ce dernier point est volontairement inconfortable : la reprise automatique est
-en bonus.
+Deux précautions :
+
+- **Naviguez avec les liens, ne rechargez pas** : le jeton est en mémoire, un
+  rechargement vous déconnecte. C'est le compromis assumé de l'étape 1, pas un
+  bug.
+- Si vous filtrez sur `admin` seul, vous verrez une ligne `/admin` : c'est la
+  **navigation du document** (le HTML de la page), pas le code du back-office.
 
 ## Vérification finale
 
 - [ ] `npx nx run-many -t test` : tout vert
 - [ ] `npx nx run-many -t lint` : vert
-- [ ] Aucun chunk `admin-page` téléchargé par un visiteur anonyme
+- [ ] Aucun chunk `admin.page` téléchargé par un visiteur anonyme ni par un client
 - [ ] Le jeton n'est jamais envoyé vers un domaine tiers
 - [ ] Le jeton n'apparaît nulle part dans `localStorage`
 
@@ -190,7 +170,7 @@ en bonus.
 l'intercepteur. La règle l'interdisait : `type:app` ne pouvait atteindre que
 `feature`, `ui` et `util`.
 
-Elle a été assouplie, avec ce commentaire :
+Elle a été assouplie, avec ce commentaire dans `eslint.config.mjs` :
 
 ```js
 // La racine de composition fait exception : c'est elle qui câble les
@@ -209,11 +189,40 @@ TP 5). Deux questions à se poser en équipe :
 Il n'y a pas de bonne réponse universelle. Il y a une équipe qui les compte, et
 une qui ne les compte pas.
 
-## Pour ceux qui finissent en avance
+## Bonus — Le rafraîchissement automatique du jeton
 
-1. **Le rafraîchissement automatique.** Un intercepteur qui capte les 401,
-   rafraîchit, et rejoue la requête. Le piège : dix requêtes en 401 simultanées
-   ne doivent déclencher **qu'un** rafraîchissement. Indice : mémoriser la
-   promesse en cours.
-2. Ajoutez `prefetch on hover` sur le lien du back-office. Que voit-on dans
-   l'onglet Réseau ? Et pour un visiteur anonyme ?
+Lisez `auth.refresh.bonus.spec.ts`. Un intercepteur capte les 401, rafraîchit,
+et rejoue la requête avec le nouveau jeton. Le piège : **dix requêtes en 401
+simultanées ne doivent déclencher qu'un seul rafraîchissement**. La solution
+tient en une promesse mémorisée (`??=`), et un test le vérifie.
+
+Pour le voir en direct, lancez l'API avec un jeton court :
+
+```bash
+cd api && npm run start:jeton-court     # jeton valable 10 secondes
+```
+
+Connectez-vous, attendez dix secondes, rechargez les indicateurs : sans reprise,
+l'intercepteur n'envoie plus le jeton et l'API répond 401.
+
+Ces tests sont verts dès que l'étape 2 est écrite. Pour aller plus loin, sortez
+l'intercepteur de reprise du test, placez-le dans `auth.interceptor.ts` et
+branchez-le dans `app.config.ts`.
+
+## Bonus — Le stockage du jeton : comparer les quatre options
+
+Lisez `session.store.bonus.spec.ts` : il fige deux conséquences du choix « en
+mémoire » — rien n'est écrit dans `localStorage` ni `sessionStorage`, et un
+rechargement déconnecte. Ces tests sont verts dès que l'étape 1 est écrite.
+
+| | Lisible par un script de la page | Survit au rechargement | Part tout seul avec les requêtes |
+| --- | --- | --- | --- |
+| `localStorage` | oui | oui, et à la fermeture | non |
+| `sessionStorage` | oui | oui, pas à la fermeture de l'onglet | non |
+| Mémoire | non, pas depuis le stockage | non | non |
+| Cookie `HttpOnly` posé par le serveur | non | oui | **oui** (donc exposé au CSRF : `SameSite`) |
+
+Aucune option ne résiste à un XSS qui s'exécute *dans* la page : il peut appeler
+l'API avec la session en cours. Les options diffèrent par ce qu'il peut
+**exfiltrer** et **conserver**. Laquelle choisiriez-vous pour votre projet, et
+qu'est-ce qui vous ferait changer d'avis ?

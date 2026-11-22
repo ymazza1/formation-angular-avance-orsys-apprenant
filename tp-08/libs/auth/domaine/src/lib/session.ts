@@ -28,29 +28,25 @@ export function estConnecte(session: Session | null): boolean {
   return session !== null;
 }
 
-/**
- * TODO TP 8 — étape 1
- * Attention à la marge : un jeton qui expire dans MARGE_EXPIRATION_MS est déjà
- * considéré comme périmé. Un test vérifie ce cas limite.
- */
 export function estExpiree(session: Session | null, maintenant: number): boolean {
-  throw new Error('TP 8 — estExpiree reste à écrire');
+  if (session === null) return true;
+  return session.expireLe - MARGE_EXPIRATION_MS <= maintenant;
 }
 
-/** TODO TP 8 — étape 1 */
 export function estUtilisable(session: Session | null, maintenant: number): boolean {
-  throw new Error('TP 8 — estUtilisable reste à écrire');
+  return estConnecte(session) && !estExpiree(session, maintenant);
 }
 
 /** Construit une session à partir de la réponse d'authentification. */
-/**
- * TODO TP 8 — étape 1
- * L'API renvoie une DURÉE en secondes ; le domaine manipule un INSTANT.
- * Un rôle inconnu doit retomber sur 'client' — jamais l'inverse.
- */
 export function versSession(
   reponse: { jeton: string; rafraichissement: string; role: string; nom: string; expireDans: number },
   maintenant: number,
 ): Session {
-  throw new Error('TP 8 — versSession reste à écrire');
+  return {
+    jeton: reponse.jeton,
+    rafraichissement: reponse.rafraichissement,
+    role: reponse.role === 'admin' ? 'admin' : 'client',
+    nom: reponse.nom,
+    expireLe: maintenant + reponse.expireDans * 1000,
+  };
 }

@@ -11,7 +11,7 @@ import { SessionStore } from './session.store';
  * téléchargé.
  */
 /**
- * TODO TP 8 — étape 4
+ * TODO TP 8 — étape 3
  * Renvoyer `true`, ou un `UrlTree` de redirection vers /connexion.
  */
 export const estAdmin: CanMatchFn = () => {

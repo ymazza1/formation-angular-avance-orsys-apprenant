@@ -14,7 +14,7 @@ const PUBLIQUES = ['/auth/connexion', '/auth/refresh'];
  *   - les routes d'authentification non plus, sinon un jeton expiré ferait
  *     échouer son propre rafraîchissement.
  */
-/** TODO TP 8 — étape 3 */
+/** TODO TP 8 — étape 2 */
 export const authInterceptor: HttpInterceptorFn = (requete, suivant) => {
   throw new Error('TP 8 — authInterceptor reste à écrire');
 };

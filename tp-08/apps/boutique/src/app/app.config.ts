@@ -16,7 +16,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes, withComponentInputBinding()),
-    // TODO TP 8 — étape 3 : brancher authInterceptor ici.
+    // TODO TP 8 — étape 2 : brancher authInterceptor ici.
     provideHttpClient(),
     { provide: LOCALE_ID, useValue: 'fr-FR' },
     // Les stratégies de livraison sont fournies en `multi` : sans cette
