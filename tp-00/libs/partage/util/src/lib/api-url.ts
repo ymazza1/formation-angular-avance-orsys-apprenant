@@ -9,7 +9,7 @@ import { InjectionToken } from '@angular/core';
  */
 export const API_URL = new InjectionToken<string>('api-url', {
   providedIn: 'root',
-  // TODO TP 0 — étape 4
+  // TODO TP 0 — étape 3
   // Renvoyer l'URL de base de l'API de démonstration.
   // Contraintes vérifiées par api-url.spec.ts :
   //   - URL absolue (http:// ou https://)

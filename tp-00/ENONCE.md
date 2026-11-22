@@ -1,6 +1,6 @@
 # TP 0 — Mise en route
 
-**Durée** 20 min
+**Durée** 20 min · **Rouges après l'installation** 7, dont **3 à écrire** · les 4 autres passent au vert dès que l'API tourne
 
 ## Pourquoi ce TP
 
@@ -14,24 +14,22 @@ première ligne de code du séjour.
 ## Comment savoir si vous avez fini
 
 ```bash
-npm run test:environnement   # l’environnement
-npx nx test partage-util   # le branchement de l'API
+npm run test:environnement   # l'environnement et l'API
+npx nx test partage-util     # le branchement de l'API
 ```
 
 Les deux doivent être verts.
 
-## Étape 1 — Vérifier Node
+| Après… | Rouges restants |
+| --- | --- |
+| l'étape 1 (installation) | 7 : 4 de l'API éteinte + 3 de `API_URL` |
+| l'étape 2 (API lancée) | 3 |
+| l'étape 3 (`API_URL`) | 0 |
+
+## Étape 1 — Installer le workspace
 
 ```bash
-node --version     # 22 ou plus récent
-```
-
-Si vous êtes en dessous, installez une version récente avant d'aller plus loin
-(`nvm install 22` si vous avez nvm).
-
-## Étape 2 — Installer le workspace
-
-```bash
+node --version               # 22 ou plus récent
 npm install --legacy-peer-deps
 ```
 
@@ -45,18 +43,17 @@ Vérification :
 npm run test:environnement
 ```
 
-Les quatre tests « versions attendues » passent au vert. Les tests « API de
-démonstration » restent rouges : c'est l'étape suivante.
+Les six premiers tests (poste de travail, versions attendues) passent au vert.
+Les quatre tests « API de démonstration » restent rouges : c'est l'étape suivante.
 
-## Étape 3 — Lancer l'API
+## Étape 2 — Lancer l'API et l'application
 
 L'API vit dans `api/`, indépendamment du workspace Angular. **Gardez-la dans un
 terminal dédié pendant les trois jours.**
 
 ```bash
-cd api
-npm install
-npm start
+npm --prefix ./api install     # une seule fois
+npm run api                    # terminal dédié
 ```
 
 Vérifiez dans le navigateur : <http://localhost:3333/api/sante>
@@ -65,31 +62,42 @@ Vérifiez dans le navigateur : <http://localhost:3333/api/sante>
 { "statut": "ok", "produits": 20, "latence": 250, "tauxErreur": 0 }
 ```
 
-Puis, dans le premier terminal :
+et <http://localhost:3333/api/produits> : c'est le catalogue de 20 produits que
+vous afficherez à partir du TP 2.
+
+Dans le premier terminal :
 
 ```bash
-npm run test:environnement     # tout doit être vert maintenant
+npm run test:environnement     # les 10 tests sont verts
+npx nx serve boutique
 ```
 
-Deux variantes de l'API serviront plus tard dans la formation — inutile de les
-lancer aujourd'hui :
+<http://localhost:4200> affiche une page presque vide avec un lien
+« Maison&Co ». C'est normal : les bibliothèques sont encore vides, on les
+remplira à partir du TP 2.
+
+Deux variantes de l'API serviront plus tard — inutile de les lancer aujourd'hui :
 
 ```bash
 npm run start:instable      # 30 % d'erreurs, 600 ms de latence   → TP 3
 npm run start:jeton-court   # jeton valable 10 secondes           → TP 8
 ```
 
-## Étape 4 — Brancher l'application sur l'API
+(à lancer depuis le dossier `api/`)
 
-Ouvrez `libs/partage/util/src/lib/api-url.ts`. La fabrique du jeton renvoie une
-chaîne vide : à vous de la remplir.
+## Étape 3 — Brancher `API_URL` (3 tests)
+
+`libs/partage/util/src/lib/api-url.ts`
+
+La fabrique du jeton renvoie une chaîne vide : à vous de la remplir.
 
 ```bash
 npx nx test partage-util
 ```
 
-Quatre tests rouges décrivent ce qui est attendu : URL absolue, se terminant
-par `/api`, sans barre oblique finale, et remplaçable en test.
+Trois tests rouges décrivent ce qui est attendu : renseigné, URL absolue, se
+terminant par `/api` sans barre oblique finale. Un quatrième, « peut être
+remplacé en test », est déjà vert : il vous dit ce que le jeton permet.
 
 Deux questions à se poser en le faisant :
 
@@ -98,32 +106,28 @@ Deux questions à se poser en le faisant :
 2. Pourquoi `providedIn: 'root'` avec une `factory` plutôt qu'un provider
    déclaré dans `app.config.ts` ?
 
-## Étape 5 — Lancer l'application
+## Vérification finale
 
-```bash
-npx nx serve boutique
-```
+- [ ] `npm run test:environnement` : 10 tests verts
+- [ ] `npx nx test partage-util` : 4 tests verts
+- [ ] `npx nx build boutique` : réussit
+- [ ] `localhost:4200` affiche l'application
+- [ ] L'API tourne dans un terminal dédié, et y reste
 
-<http://localhost:4200> affiche une page presque vide avec un lien
-« Maison&Co ». C'est normal : les bibliothèques sont encore vides, on les
-remplira à partir du TP 2.
+## Bonus — Vérifier la version de Node
 
-## Étape 6 — Outillage navigateur
+Le premier test de `test:environnement` (« tourne sur Node 22 ou plus récent »)
+le fait déjà. Si vous êtes en dessous, installez une version récente avant d'aller
+plus loin (`nvm install 22` si vous avez nvm), puis relancez l'installation.
+Pourquoi un test plutôt qu'une ligne dans un README ?
+
+## Bonus — Installer l'outillage navigateur
 
 - **Angular DevTools** — <https://angular.dev/tools/devtools>
   Installez l'extension, ouvrez les DevTools sur `localhost:4200` et vérifiez
   que les onglets *Components* et *Profiler* apparaissent. On s'en servira
   intensivement au jour 2.
 - **VS Code** : extension *Angular Language Service*.
-
-## Vérification finale
-
-- [ ] `npm run test:environnement` : tout vert
-- [ ] `npx nx test partage-util` : 4 tests verts
-- [ ] `npx nx build boutique` : réussit
-- [ ] `localhost:4200` affiche l'application
-- [ ] L'onglet Angular apparaît dans les DevTools
-- [ ] L'API tourne dans un terminal dédié, et y reste
 
 ## Si ça coince
 
