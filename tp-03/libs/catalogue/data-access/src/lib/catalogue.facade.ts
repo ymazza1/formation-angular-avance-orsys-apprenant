@@ -1,87 +1,80 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { appliquer, Filtres, FILTRES_VIDES, Produit } from '@maison/catalogue/domaine';
-import { firstValueFrom } from 'rxjs';
+import { catchError, map, mergeMap, of, startWith, Subject } from 'rxjs';
 import { CatalogueApi, Facettes, PAGE_VIDE, PageProduits } from './catalogue.api';
 
+/** Ce que la page affiche, en une seule valeur : jamais deux signaux à synchroniser. */
+interface EtatCatalogue {
+  readonly page: PageProduits;
+  readonly erreur: string | null;
+  readonly chargement: boolean;
+}
+
+const ETAT_INITIAL: EtatCatalogue = { page: PAGE_VIDE, erreur: null, chargement: false };
+
 /**
- * Façade du catalogue — VERSION NAÏVE, héritée du TP 2.
+ * Façade du catalogue — VERSION NAÏVE.
  *
- * ┌────────────────────────────────────────────────────────────────────────┐
- * │ TP 3 — c'est ce fichier que vous allez réécrire.                       │
- * │                                                                        │
- * │ Elle FONCTIONNE : lancez l'application et servez-vous-en. C'est même   │
- * │ l'objet de l'étape 1 — constater ce qu'elle fait de mal avant de la    │
- * │ corriger.                                                              │
- * │                                                                        │
- * │ Ses trois défauts, que les tests décrivent :                           │
- * │   1. une requête par frappe, sans exception ;                          │
- * │   2. aucune annulation : une réponse lente écrase une réponse récente ;│
- * │   3. une erreur réseau n'est pas réessayée.                            │
- * │                                                                        │
- * │ Votre travail : remplacer `rafraichir()` et `charger()` par un         │
- * │ pipeline RxJS, SANS toucher à la surface publique — aucun composant    │
- * │ ne doit être modifié.                                                  │
- * └────────────────────────────────────────────────────────────────────────┘
+ * Elle FONCTIONNE : lancez l'application et servez-vous-en, c'est l'objet de
+ * l'étape 1. Mais elle a trois défauts, un par étape :
+ *   1. une requête par frappe, sans exception ;
+ *   2. aucune annulation : une réponse lente écrase une réponse récente ;
+ *   3. la première erreur réseau tue le flux : plus rien ne se charge ensuite.
+ *
+ * La surface publique (signaux et commandes) ne doit PAS changer : aucun
+ * composant n'est touché par ce TP.
  */
 @Injectable({ providedIn: 'root' })
 export class CatalogueFacade {
   private readonly api = inject(CatalogueApi);
 
   private readonly _filtres = signal<Filtres>(FILTRES_VIDES);
-  private readonly _page = signal<PageProduits>(PAGE_VIDE);
-  private readonly _chargement = signal(false);
-  private readonly _erreur = signal<string | null>(null);
-
   readonly filtres = this._filtres.asReadonly();
-  readonly enChargement = this._chargement.asReadonly();
-  readonly erreur = this._erreur.asReadonly();
-
-  readonly produits = computed<readonly Produit[]>(() => this._page().items);
-  readonly total = computed<number>(() => this._page().total);
-  readonly facettes = computed<Facettes>(() => this._page().facettes);
 
   /**
-   * TODO TP 3 — étapes 3 à 6
-   *
-   * Introduire une source d'événements, et construire le pipeline dessus :
-   *
-   *   private readonly demandes = new Subject<Filtres>();
-   *
-   *   filter               une lettre ne part pas au serveur
-   *                        (réutiliser `rechercheExploitable`, du domaine)
-   *   debounceTime         DELAI_FRAPPE_MS
-   *   distinctUntilChanged avec `memesFiltres`, pas JSON.stringify
-   *   switchMap            vers this.api.rechercher(filtres), et à l'intérieur :
-   *     retry              TENTATIVES fois, avec un délai croissant
-   *     map                vers un état chargé
-   *     catchError         À L'INTÉRIEUR du switchMap — testez les deux positions
-   *     startWith          l'état de chargement, à chaque requête
-   *
-   * Puis exposer le résultat avec `toSignal(..., { initialValue: … })` : une
-   * seule souscription, nettoyée avec l'injecteur. Aucun `subscribe` manuel —
-   * un test de structure le vérifie.
-   *
-   * DELAI_FRAPPE_MS, TENTATIVES et memesFiltres sont fournis en bas de fichier.
+   * Source d'événements. Un Subject plutôt que `toObservable(this._filtres)` :
+   * on modélise une SUITE DE DEMANDES dans le temps, pas la valeur courante des
+   * filtres — celle-ci est déjà un signal.
    */
-  rafraichir(): void {
-    void this.charger();
-  }
+  private readonly demandes = new Subject<Filtres>();
 
-  /** Version naïve : un appel direct, sans debounce ni annulation. */
-  private async charger(): Promise<void> {
-    this._chargement.set(true);
-    this._erreur.set(null);
-    try {
-      this._page.set(await firstValueFrom(this.api.rechercher(this._filtres())));
-    } catch {
-      this._page.set(PAGE_VIDE);
-      this._erreur.set('catalogue_indisponible');
-    } finally {
-      this._chargement.set(false);
-    }
-  }
+  /**
+   * `toSignal` souscrit une seule fois et se désabonne avec l'injecteur : aucun
+   * `subscribe` manuel (un test de structure le vérifie).
+   */
+  private readonly etat = toSignal(
+    this.demandes.pipe(
+      // TODO TP 3 — étape 1 : filter, debounceTime, distinctUntilChanged
+
+      // TODO TP 3 — étape 2 : mergeMap laisse vivre toutes les requêtes
+      mergeMap((filtres) =>
+        this.api.rechercher(filtres).pipe(
+          map((page): EtatCatalogue => ({ page, erreur: null, chargement: false })),
+          // TODO TP 3 — étape 3 : retry et catchError
+          startWith<EtatCatalogue>({ page: PAGE_VIDE, erreur: null, chargement: true }),
+        ),
+      ),
+      // TODO TP 3 — étape 3 : ce catchError est au mauvais niveau
+      catchError(() =>
+        of<EtatCatalogue>({ page: PAGE_VIDE, erreur: 'catalogue_indisponible', chargement: false }),
+      ),
+    ),
+    { initialValue: ETAT_INITIAL },
+  );
+
+  readonly produits = computed<readonly Produit[]>(() => this.etat().page.items);
+  readonly total = computed<number>(() => this.etat().page.total);
+  readonly facettes = computed<Facettes>(() => this.etat().page.facettes);
+  readonly enChargement = computed<boolean>(() => this.etat().chargement);
+  readonly erreur = computed<string | null>(() => this.etat().erreur);
 
   // --- commandes : la surface publique ne doit PAS changer ---------------------
+
+  /** Premier chargement, et bouton « réessayer ». */
+  rafraichir(): void {
+    this.demandes.next(this._filtres());
+  }
 
   rechercher(recherche: string): void {
     this.modifier({ recherche });
