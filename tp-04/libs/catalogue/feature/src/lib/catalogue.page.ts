@@ -70,7 +70,7 @@ export class CataloguePage {
   constructor() {
     this.facade.rafraichir();
 
-    // TODO TP 4 — étape 6
+    // TODO TP 4 — étape 2
     // Surveiller le stock des produits affichés, et brancher <mc-badge-stock>
     // dans la grille ci-dessus.
   }

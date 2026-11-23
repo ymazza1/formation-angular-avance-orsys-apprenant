@@ -1,6 +1,6 @@
 # TP 4 — Le stock temps réel, et pourquoi il ne s'affiche pas
 
-**Durée** 50 min
+**Durée** 45 min · **Rouges au départ** 10, dont **9 à écrire** · tous les autres tests sont déjà verts
 
 ## Le contexte
 
@@ -12,44 +12,54 @@ On ajoute donc une surveillance du stock, rafraîchie à intervalle régulier. E
 c'est là que les choses deviennent intéressantes : **cette mise à jour se
 produit en dehors de tout événement Angular**.
 
-Sous Zone.js, ça marchait sans qu'on se pose de questions — Zone.js
+Sous Zone.js, ça marchait sans qu'on se pose de questions : Zone.js
 interceptait le `setInterval` et déclenchait un cycle de détection global.
 Notre application est zoneless. Rien n'intercepte plus rien.
+
+## Ce qui vous est fourni
+
+Lisez-le avant d'écrire : c'est la forme cible.
+
+| Fichier | Rôle |
+| --- | --- |
+| `libs/catalogue/ui/.../badge-stock.component.ts` | Le badge : quatre niveaux calculés dans un `computed`, et `null` n'est pas `0` (7 tests verts) |
+| `libs/catalogue/data-access/.../stock.store.ts` | Les signaux `_stocks` et `_surveilles`, le `computed` `nbSurveilles`, et la surveillance (`surveiller`, `rafraichir`, `interroger`). Elle fonctionne, mais sa minuterie fuit |
+
+Quatre tests de structure vérifient que Zone.js n'est ni une dépendance ni un
+polyfill, qu'aucun `NgZone` n'est injecté, et qu'aucun `detectChanges()` ne
+traîne dans le code applicatif. Ils passent déjà : à vous de ne pas les casser,
+et l'étape 1 va vous en donner l'envie.
 
 ## Comment savoir si vous avez fini
 
 ```bash
-npx nx test catalogue-data-access    # 10 rouges au départ
-npx nx test catalogue-ui             #  7 rouges au départ
-npm run test:structure               # 34 verts, dont 4 nouveaux
-```
-## Les tests bonus
-
-Certains tests sont dans des fichiers `*.bonus.spec.ts`, **exclus par défaut**.
-Ils couvrent des cas limites intéressants mais non essentiels.
-
-Pour les activer, retirez la ligne `exclude` du `vite.config.mts` de la
-bibliothèque concernée :
-
-```ts
-exclude: ['**/*.bonus.spec.ts'],   // ← retirer cette ligne
+npx nx run-many -t test      # 10 rouges au départ, tous verts à la fin
+npm run test:structure       # vert, et doit le rester
+npx nx run-many -t lint      # vert
 ```
 
-Ne les activez que si vous avez terminé le reste.
+**Pourquoi 10 rouges et pas 9 ?** Le test *bonus* « ignore une erreur réseau sans
+perdre la valeur connue » lit la quantité que vous allez écrire à l'étape 1 : il
+passe seul au vert, vous n'avez rien à y écrire.
 
+| Après… | Rouges restants |
+| --- | --- |
+| l'ouverture du projet | 10 |
+| l'étape 1 | 4 (5 écrits + 1 bonus qui passe seul) |
+| l'étape 2 | 2 |
+| l'étape 3 | 0 |
 
-Quatre tests de structure ont été ajoutés : ils vérifient que Zone.js n'est ni
-une dépendance, ni un polyfill, qu'aucun `NgZone` n'est injecté, et qu'aucun
-`detectChanges()` ne traîne dans le code applicatif. Ils passent déjà — à vous
-de ne pas les casser, et l'étape 1 va vous en donner l'envie.
+Les fichiers `*.spec.ts` ne sont pas à modifier : ce sont vos spécifications.
 
-## Étape 1 — Voir le bug, pour de vrai
+## Étape 1 — Voir le bug, puis écrire l'état
 
 **Avant d'écrire le bon code, écrivez le mauvais.** Dix lignes suffisent, et
 elles ne dépendent d'aucun code du TP : on les met directement dans
-`CataloguePage`, on observe, on efface.
+`CataloguePage` (`libs/catalogue/feature/src/lib/catalogue.page.ts`), on
+observe, on efface. API et application lancées (`npm run api`,
+`npx nx serve boutique`).
 
-### Version 1 — un champ ordinaire
+**Version 1 — un champ ordinaire.**
 
 ```ts
 // dans CataloguePage, temporairement
@@ -68,13 +78,10 @@ constructor() {
 <p>Compteur : {{ compteurMutable.valeur }}</p>
 ```
 
-Lancez l'application. **La console compte, l'écran reste à 0.**
+**La console compte, l'écran reste à 0.** C'est aussi la preuve que
+l'application est bien zoneless : sous Zone.js, ce code se rafraîchirait.
 
-C'est aussi la preuve que l'application est bien zoneless : sous Zone.js, ce
-code se rafraîchirait — Zone.js intercepterait le `setInterval` et
-déclencherait un cycle global.
-
-### Version 2 — un signal, mais muté
+**Version 2 — un signal, mais muté.**
 
 ```ts
 protected compteurSignal = signal({ valeur: 0 });
@@ -88,12 +95,10 @@ setInterval(() => {
 <p>Compteur : {{ compteurSignal().valeur }}</p>
 ```
 
-**L'écran reste à 0 lui aussi.** C'est le piège central du TP : mettre la
-valeur dans un signal ne suffit pas. Le signal surveille **sa référence**, pas
-le contenu de ce qu'il contient. `.valeur += 1` ne change pas la référence, le
-signal n'a rien à notifier.
+**L'écran reste à 0 lui aussi.** C'est le piège central du TP : le signal
+surveille **sa référence**, pas le contenu de ce qu'il contient.
 
-### Version 3 — une nouvelle référence
+**Version 3 — une nouvelle référence.**
 
 ```ts
 setInterval(() => {
@@ -101,94 +106,31 @@ setInterval(() => {
 }, 1000);
 ```
 
-**L'écran compte.**
+**L'écran compte.** En binôme, formulez en une phrase pourquoi la version 2
+échoue alors que la valeur est dans un signal : c'est celle que vous répéterez à
+vos collègues. **Effacez ensuite les trois versions.**
 
-### Les trois questions
-
-À traiter en binôme avant de continuer :
-
-1. Pourquoi la version 1 fonctionnait-elle sous Zone.js ?
-2. En zoneless, qu'est-ce qui aurait dû prévenir Angular ?
-3. La version 2 échoue alors que la valeur est dans un signal. Formulez la
-   raison en une phrase — c'est celle que vous répéterez à vos collègues.
-
-**Effacez ensuite ces trois versions.** Elles ont servi ; le reste du TP
-applique la leçon à `StockStore`, où la valeur mutée sera une `Map`.
-
-## Étape 2 — L'état, correctement
-
-`libs/catalogue/data-access/src/lib/stock.store.ts`
-
-Écrivez `enregistrer`, `quantite` et `estDisponible`.
-
-La règle : **chaque mise à jour produit une nouvelle Map.**
+Puis, dans `libs/catalogue/data-access/src/lib/stock.store.ts`, appliquez la
+leçon à la `Map` des stocks : écrivez `enregistrer`, `quantite` et
+`estDisponible`. La règle : **chaque mise à jour produit une nouvelle Map.**
 
 ```ts
 this._stocks.update((precedents) => new Map(precedents).set(etat.id, etat));
 ```
 
 Le test « produit une nouvelle référence à chaque mise à jour » vérifie que
-l'ancienne Map est intacte. C'est plus fort que « ça se rafraîchit » : ça
+l'ancienne Map est intacte : c'est plus fort que « ça se rafraîchit », ça
 garantit qu'aucun code ne peut modifier l'état par un chemin détourné.
 
-Notez que `quantite(id)` est une **méthode**, pas un signal — mais comme elle
-lit `this._stocks()`, l'appeler dans un template crée bien la dépendance. C'est
-un point qui surprend souvent.
+`quantite(id)` est une **méthode**, pas un signal. Comme elle lit
+`this._stocks()`, l'appeler dans un template crée bien la dépendance.
 
-## Étape 3 — La surveillance
+## Étape 2 — Surveiller avec un effect
 
-`surveiller(ids)`, `rafraichir()` et `interroger(id)`.
+`libs/catalogue/feature/src/lib/catalogue.page.ts`
 
-- `surveiller` arrête la surveillance précédente, interroge immédiatement, puis
-  programme un rafraîchissement toutes les `PERIODE_STOCK_MS`.
-- Une erreur réseau ne doit **pas** effacer la dernière valeur connue : un
-  badge qui repasse à « vérification » à chaque hoquet réseau est pire que pas
-  de badge du tout.
-- **Pas de `subscribe`** : le test de structure du TP 3 l'interdit toujours.
-  `firstValueFrom` suffit pour une requête qui n'émet qu'une fois.
-
-## Étape 4 — Le nettoyage
-
-`arreter()`, et son appel automatique à la destruction.
-
-Une minuterie qui survit à son service, c'est une requête HTTP toutes les
-quinze secondes jusqu'à la fermeture de l'onglet.
-
-```ts
-inject(DestroyRef).onDestroy(() => this.arreter());
-```
-
-Déclarez-le dans le constructeur, **au même endroit que la ressource qu'il
-libère**. Un nettoyage écrit à cinquante lignes de distance est un nettoyage
-qu'on oubliera de mettre à jour.
-
-## Étape 5 — Le badge
-
-`libs/catalogue/ui/src/lib/badge-stock.component.ts`
-
-Quatre états, et le premier est celui qu'on oublie toujours :
-
-| Quantité | Affichage |
-| --- | --- |
-| `null` | Stock en cours de vérification |
-| `0` | Rupture de stock |
-| `< 5` | Plus que N en stock |
-| `>= 5` | En stock (N) |
-
-**`null` n'est pas `0`.** Afficher « Rupture de stock » pendant le chargement
-est un bug d'affichage qui coûte des ventes.
-
-Le niveau se calcule dans un `computed`, jamais dans le template.
-
-Un test mérite votre attention : « se rafraîchit sans detectChanges quand
-l'entrée change ». Aucun `detectChanges()`, juste `setInput` puis
-`await whenStable()`. C'est tout ce que demande le zoneless : que le changement
-passe par un signal.
-
-## Étape 6 — Brancher dans la page
-
-Dans `CataloguePage`, surveiller le stock des produits affichés et afficher le
-badge.
+Dans le constructeur de `CataloguePage`, surveillez le stock des produits
+affichés, et ajoutez le badge dans la grille, sous chaque carte :
 
 ```ts
 effect(() => {
@@ -197,43 +139,85 @@ effect(() => {
 });
 ```
 
-**C'est un `effect` légitime** — et il y en a peu. Il ne calcule rien : il
-synchronise un service extérieur (une minuterie) avec un état réactif. Si vous
-vous surprenez à écrire un `effect` qui fait `set()` sur un autre signal, c'est
-un `computed` qu'il vous faut.
+```html
+<mc-badge-stock [quantite]="stocks.quantite(produit.id)" />
+```
 
-Vérifiez dans le navigateur, API lancée : les badges se mettent à jour tout
-seuls. Puis modifiez un stock directement côté API et attendez quinze secondes.
+(`StockStore` s'injecte dans la page, `BadgeStockComponent` s'ajoute à ses
+`imports`.)
 
-## Étape 7 — Mesurer
+**Pourquoi un `effect`, et pas un `computed` ?** Un `computed` *calcule une
+valeur* à partir d'autres signaux, sans rien toucher d'autre ; Angular peut ne
+jamais l'évaluer si personne ne le lit. Ici on ne calcule rien : on
+**synchronise un service extérieur** (une minuterie, des requêtes) avec un état
+réactif. C'est le cas légitime de l'`effect`, et il y en a peu. Si vous vous
+surprenez à écrire un `effect` qui fait `set()` sur un autre signal, c'est un
+`computed` qu'il vous faut (ou un `linkedSignal`, voir le bonus).
 
-Ouvrez les **Angular DevTools**, onglet *Profiler*, et enregistrez trente
-secondes d'inactivité sur la page catalogue.
+Vérifiez dans le navigateur : les badges passent de « vérification » à leur
+niveau tout seuls, sans clic ni `detectChanges()`.
 
-Questions :
+## Étape 3 — Le nettoyage : la minuterie qui fuit
 
-- combien de cycles de détection sont déclenchés par les rafraîchissements de
-  stock ?
-- quels composants sont revérifiés ? Uniquement les badges, ou toute la grille ?
-- que se passerait-il si `quantite()` renvoyait un nouvel objet à chaque appel
-  au lieu d'un nombre ?
+`libs/catalogue/data-access/src/lib/stock.store.ts`
 
-Gardez ces chiffres : on les comparera au TP 10.
+Ouvrez l'onglet **Réseau**, puis changez plusieurs fois de pièce dans les
+filtres et attendez quinze secondes : chaque nouvelle liste a lancé sa propre
+minuterie, **aucune ne s'est arrêtée**. Une minuterie qui survit à son usage,
+c'est une rafale de requêtes HTTP toutes les quinze secondes jusqu'à la
+fermeture de l'onglet.
+
+Trois gestes :
+
+1. écrire `arreter()` : `clearInterval`, et remettre `minuterie` à `null` ;
+2. l'appeler en tête de `surveiller()` ;
+3. déclarer le nettoyage dans le constructeur, **au même endroit que la
+   ressource qu'il libère** :
+
+```ts
+inject(DestroyRef).onDestroy(() => this.arreter());
+```
+
+Un nettoyage écrit à cinquante lignes de distance est un nettoyage qu'on
+oubliera de mettre à jour. C'est la même idée que la fonction `onCleanup` que
+reçoit un `effect` : la libération est déclarée à côté de l'acquisition.
 
 ## Vérification finale
 
 - [ ] `npx nx run-many -t test` : tout vert
-- [ ] `npm run test:structure` : 34 verts
+- [ ] `npm run test:structure` : vert
+- [ ] `npx nx run-many -t lint` : vert
 - [ ] Les badges se mettent à jour sans intervention
 - [ ] Aucun `detectChanges()` ni `NgZone` dans le code
-- [ ] En quittant la page catalogue, les requêtes de stock s'arrêtent
-      (onglet Réseau)
+- [ ] Après plusieurs changements de filtre, une seule rafale de requêtes de
+      stock toutes les quinze secondes (onglet Réseau)
 
-## Pour ceux qui finissent en avance
+## Bonus — Mesurer au Profiler
 
-1. Le `setInterval` continue de tourner quand l'onglet est en arrière-plan.
-   Suspendez la surveillance sur l'événement `visibilitychange`. Où placer ce
-   code pour qu'il reste testable ?
-2. Remplacez le `setInterval` par un flux RxJS (`interval` + `switchMap`).
-   Qu'est-ce que ça simplifie ? Qu'est-ce que ça complique ? Et le test de
-   structure sur les `subscribe`, comment le respecter ?
+Ouvrez les **Angular DevTools**, onglet *Profiler*, et enregistrez trente
+secondes d'inactivité sur la page catalogue.
+
+- Combien de cycles de détection sont déclenchés par les rafraîchissements de
+  stock ?
+- Quels composants sont revérifiés : uniquement les badges, ou toute la grille ?
+- Que se passerait-il si `quantite()` renvoyait un nouvel objet à chaque appel
+  au lieu d'un nombre ?
+
+Gardez ces chiffres : on les comparera au TP 10.
+
+## Bonus — `linkedSignal` sur la quantité
+
+Lisez `libs/catalogue/ui/src/lib/quantite-choisie.bonus.spec.ts`. La quantité
+qu'on s'apprête à commander est un état **local** (l'utilisateur la modifie)
+mais **dérivé** du stock (elle ne peut pas le dépasser).
+
+- Un `computed` ne s'écrit pas.
+- Un `signal` corrigé par un `effect` est exactement l'effet « qui fait `set()`
+  sur un autre signal » déconseillé à l'étape 2.
+- `linkedSignal` s'écrit, et se recalcule quand sa source change **en
+  connaissant sa valeur précédente** : le choix de l'utilisateur est gardé tant
+  que le stock le permet.
+
+Les quatre tests sont verts dès l'ouverture. Remplacez `precedent?.value ?? 1`
+par `1` dans le composant du test : deux tests passent au rouge. Pourquoi
+exactement ces deux-là ?

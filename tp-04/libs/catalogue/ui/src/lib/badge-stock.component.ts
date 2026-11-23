@@ -13,17 +13,26 @@ type NiveauStock = 'inconnu' | 'rupture' | 'tendu' | 'dispo';
  *
  * `quantite` vaut `null` tant que le stock n'a pas encore été chargé — un état
  * distinct de la rupture, qu'il ne faut pas confondre à l'affichage.
- *
- * TODO TP 4 — étape 5
- * Compléter `niveau()` et le template. Quatre états, décrits par les tests.
- * Le niveau se calcule dans un `computed`, jamais dans le template.
  */
 @Component({
   selector: 'mc-badge-stock',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <span class="badge" [class]="'badge--' + niveau()" role="status">
-      <!-- TODO TP 4 — étape 5 -->
+      @switch (niveau()) {
+        @case ('inconnu') {
+          Stock en cours de vérification
+        }
+        @case ('rupture') {
+          Rupture de stock
+        }
+        @case ('tendu') {
+          Plus que {{ quantite() }} en stock
+        }
+        @default {
+          En stock ({{ quantite() }})
+        }
+      }
     </span>
   `,
   styleUrl: './badge-stock.component.scss',
@@ -32,6 +41,9 @@ export class BadgeStockComponent {
   readonly quantite = input.required<number | null>();
 
   protected readonly niveau = computed<NiveauStock>(() => {
-    throw new Error('TP 4 — niveau() reste à écrire');
+    const quantite = this.quantite();
+    if (quantite === null) return 'inconnu';
+    if (quantite === 0) return 'rupture';
+    return quantite < SEUIL_STOCK_TENDU ? 'tendu' : 'dispo';
   });
 }
