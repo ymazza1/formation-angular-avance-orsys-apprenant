@@ -36,8 +36,6 @@ interface ReponsePromotion {
  * La chaîne de dérivation va de `lignes` à `total` sans qu'aucun montant
  * intermédiaire ne soit stocké. Un total stocké finit toujours par diverger de
  * son détail.
- *
- * TODO TP 5 — étapes 2 à 4
  */
 @Injectable({ providedIn: 'root' })
 export class PanierStore {
@@ -54,67 +52,71 @@ export class PanierStore {
   readonly codePromo = this._codePromo.asReadonly();
   readonly erreurPromo = this._erreurPromo.asReadonly();
 
-  // TODO TP 5 — étape 2 : tout ce qui suit est DÉRIVÉ. Aucun montant ne doit
-  // être stocké dans un signal en écriture.
-  readonly nbArticles = computed<number>(() => {
-    throw new Error('TP 5 — nbArticles reste à écrire');
-  });
-
-  readonly estVide = computed<boolean>(() => {
-    throw new Error('TP 5 — estVide reste à écrire');
-  });
-
-  readonly sousTotal = computed<number>(() => {
-    throw new Error('TP 5 — sousTotal reste à écrire');
-  });
+  readonly nbArticles = computed(() => nbArticles(this._lignes()));
+  readonly estVide = computed(() => this._lignes().length === 0);
+  // TODO TP 5 — étape 3 : la chaîne de dérivation. Ces quatre montants valent 0
+  // en attendant : le récapitulatif s'affiche, mais il ment.
+  readonly sousTotal = computed<number>(() => 0);
 
   /** Un panier vide ne coûte rien à livrer — attention au cas limite. */
-  readonly fraisLivraison = computed<number>(() => {
-    throw new Error('TP 5 — fraisLivraison reste à écrire');
-  });
+  readonly fraisLivraison = computed<number>(() => 0);
 
-  readonly remise = computed<number>(() => {
-    throw new Error('TP 5 — remise reste à écrire');
-  });
+  readonly remise = computed<number>(() => 0);
 
-  readonly total = computed<number>(() => {
-    throw new Error('TP 5 — total reste à écrire');
-  });
+  readonly total = computed<number>(() => 0);
 
   constructor() {
-    // TODO TP 5 — étape 4
-    // Restaurer le panier, puis le persister à chaque changement.
-    // Ce sera le SEUL effet du store — et le seul justifié : il synchronise un
-    // système extérieur avec l'état réactif, il ne calcule rien.
+    this.restaurer();
+
+    /**
+     * Le seul effet du store, et il est légitime : il synchronise un système
+     * extérieur (le stockage du navigateur) avec l'état réactif. Il ne calcule
+     * rien et n'écrit dans aucun signal.
+     */
+    effect(() => {
+      const contenu = JSON.stringify(this._lignes());
+      try {
+        localStorage.setItem(CLE_PERSISTANCE, contenu);
+      } catch {
+        // stockage plein ou navigation privée : le panier reste en mémoire
+      }
+    });
   }
 
-  // TODO TP 5 — étape 3 : chaque commande délègue au domaine, et ne contient
-  // aucune règle métier.
+  // TODO TP 5 — étape 2 : chaque commande délègue au domaine, et ne contient
+  // aucune règle métier. Elles ne font encore rien.
 
   ajouter(produit: Produit, quantite = 1): void {
-    throw new Error('TP 5 — PanierStore.ajouter reste à écrire');
+    return;
   }
 
   retirer(produitId: string): void {
-    throw new Error('TP 5 — PanierStore.retirer reste à écrire');
+    return;
   }
 
   changerQuantite(produitId: string, quantite: number): void {
-    throw new Error('TP 5 — PanierStore.changerQuantite reste à écrire');
+    return;
   }
 
   vider(): void {
-    throw new Error('TP 5 — PanierStore.vider reste à écrire');
+    return;
   }
 
-  /**
-   * TODO TP 5 — étape 5
-   * GET {base}/promotions/{code}. Trois issues, trois états distincts :
-   * code accepté, code refusé ('code_invalide'), panne
-   * ('verification_impossible'). La promesse ne rejette jamais.
-   */
   async appliquerCodePromo(code: string): Promise<void> {
-    throw new Error('TP 5 — appliquerCodePromo reste à écrire');
+    this._erreurPromo.set(null);
+    try {
+      const reponse = await firstValueFrom(
+        this.http.get<ReponsePromotion>(`${this.base}/promotions/${code}`),
+      );
+      if (!reponse.valide) {
+        this._erreurPromo.set('code_invalide');
+        return;
+      }
+      this._codePromo.set(code);
+      this._remisePourcent.set(reponse.remisePourcent ?? null);
+    } catch {
+      this._erreurPromo.set('verification_impossible');
+    }
   }
 
   retirerCodePromo(): void {
@@ -123,12 +125,13 @@ export class PanierStore {
     this._erreurPromo.set(null);
   }
 
-  /**
-   * TODO TP 5 — étape 4
-   * Un contenu stocké illisible ne doit pas empêcher l'application de démarrer.
-   */
   private restaurer(): void {
-    throw new Error('TP 5 — restaurer reste à écrire');
+    try {
+      const brut = localStorage.getItem(CLE_PERSISTANCE);
+      if (brut) this._lignes.set(JSON.parse(brut) as Panier);
+    } catch {
+      // contenu illisible : on repart d'un panier vide plutôt que de planter
+    }
   }
 }
 

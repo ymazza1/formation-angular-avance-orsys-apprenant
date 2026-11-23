@@ -18,7 +18,31 @@ import { LignePanier } from '@maison/panier/domaine';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="ligne">
-      <!-- TODO TP 5 — étape 6 -->
+      <div>
+        <p class="nom">{{ ligne().nom }}</p>
+        <p class="unitaire">{{ ligne().prixUnitaire | currency: 'EUR' }} l'unité</p>
+      </div>
+
+      <label>
+        <span class="visuellement-cache">Quantité</span>
+        <input
+          type="number"
+          min="0"
+          [max]="ligne().stockDisponible"
+          [value]="quantite()"
+          (change)="surSaisie($any($event.target).value)"
+        />
+      </label>
+
+      @if (stockAtteint()) {
+        <span role="status">Stock maximum</span>
+      } @else {
+        <span></span>
+      }
+
+      <p class="total">{{ totalLigne() | currency: 'EUR' }}</p>
+
+      <button type="button" (click)="supprimer.emit(ligne().produitId)">Retirer</button>
     </div>
   `,
   styleUrl: './ligne-panier.component.scss',
@@ -28,17 +52,11 @@ export class LignePanierComponent {
   readonly quantite = model.required<number>();
   readonly supprimer = output<string>();
 
-  // TODO TP 5 — étape 6
-  protected readonly totalLigne = computed<number>(() => {
-    throw new Error('TP 5 — totalLigne reste à écrire');
-  });
+  protected readonly totalLigne = computed(() => this.ligne().prixUnitaire * this.quantite());
+  protected readonly stockAtteint = computed(() => this.quantite() >= this.ligne().stockDisponible);
 
-  protected readonly stockAtteint = computed<boolean>(() => {
-    throw new Error('TP 5 — stockAtteint reste à écrire');
-  });
-
-  /** Une saisie vide doit produire 0, pas NaN. */
   protected surSaisie(valeur: string): void {
-    throw new Error('TP 5 — surSaisie reste à écrire');
+    const quantite = Number(valeur);
+    this.quantite.set(Number.isFinite(quantite) ? quantite : 0);
   }
 }

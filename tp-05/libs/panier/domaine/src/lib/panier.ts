@@ -7,14 +7,6 @@ import { LigneLivrable } from '@maison/livraison/domaine';
  *
  * C'est ce qui permettra au store de n'être qu'un porteur de signal, sans
  * logique métier — et à ces règles d'être testées sans Angular.
- *
- * TODO TP 5 — étape 1
- * Trois fonctions sont à écrire : `ajouter`, `changerQuantite` et
- * `versLignesLivrables`. Les autres sont fournies — elles sont mécaniques.
- * Aucune ne doit modifier son argument : un test le vérifie explicitement.
- *
- * Deux helpers privés sont disponibles en bas de fichier : `remplacer` et
- * `borner`.
  */
 
 export interface LignePanier {
@@ -35,7 +27,6 @@ export const PANIER_VIDE: Panier = [];
 /** Au-delà, on considère que c'est une erreur de saisie plutôt qu'une commande. */
 export const QUANTITE_MAX_PAR_LIGNE = 20;
 
-/** FOURNI — plomberie de construction, ce n'est pas le sujet. */
 export function ligneDepuisProduit(produit: Produit, quantite = 1): LignePanier {
   return {
     produitId: produit.id,
@@ -49,35 +40,36 @@ export function ligneDepuisProduit(produit: Produit, quantite = 1): LignePanier 
 }
 
 /**
- * TODO TP 5 — étape 1
  * Ajouter un produit déjà présent additionne les quantités, sans jamais
- * dépasser le stock disponible ni QUANTITE_MAX_PAR_LIGNE.
- * Un produit en rupture n'entre pas dans le panier.
+ * dépasser le stock disponible ni le plafond de saisie.
  */
 export function ajouter(panier: Panier, produit: Produit, quantite = 1): Panier {
-  throw new Error('TP 5 — ajouter reste à écrire');
+  if (produit.stock <= 0) return panier;
+
+  const existante = panier.find((ligne) => ligne.produitId === produit.id);
+  if (!existante) return [...panier, ligneDepuisProduit(produit, quantite)];
+
+  return remplacer(panier, produit.id, {
+    ...existante,
+    quantite: borner(existante.quantite + quantite, produit.stock),
+  });
 }
 
-/** FOURNI */
 export function retirer(panier: Panier, produitId: string): Panier {
-  return panier.filter((ligne) => ligne.produitId !== produitId);
+  // TODO TP 5 — étape 1
+  throw new Error('TP 5 — retirer reste à écrire');
 }
 
-/**
- * TODO TP 5 — étape 1
- * Une quantité nulle ou négative retire la ligne : c'est le geste attendu par
- * l'utilisateur qui met 0 dans le champ.
- */
+/** Une quantité nulle ou négative retire la ligne : c'est le geste attendu. */
 export function changerQuantite(panier: Panier, produitId: string, quantite: number): Panier {
+  // TODO TP 5 — étape 1 : même forme qu'`ajouter`, ci-dessus.
   throw new Error('TP 5 — changerQuantite reste à écrire');
 }
 
-/** FOURNI */
 export function nbArticles(panier: Panier): number {
   return panier.reduce((total, ligne) => total + ligne.quantite, 0);
 }
 
-/** FOURNI */
 export function sousTotal(panier: Panier): number {
   return arrondirCentimes(
     panier.reduce((total, ligne) => total + ligne.prixUnitaire * ligne.quantite, 0),
@@ -85,15 +77,14 @@ export function sousTotal(panier: Panier): number {
 }
 
 /**
- * TODO TP 5 — étape 1
- * Traduction vers le vocabulaire du domaine livraison. Ne laissez fuir ni le
- * nom ni l'identifiant du produit : la livraison n'en a pas besoin.
+ * Traduction vers le vocabulaire du domaine livraison.
+ * TODO TP 5 — étape 1 : le domaine livraison ne doit connaître ni le nom ni
+ * l'identifiant du produit.
  */
 export function versLignesLivrables(panier: Panier): readonly LigneLivrable[] {
   throw new Error('TP 5 — versLignesLivrables reste à écrire');
 }
 
-/** FOURNI */
 export function remise(sousTotalEuros: number, remisePourcent: number | null): number {
   if (remisePourcent === null) return 0;
   return arrondirCentimes(sousTotalEuros * (remisePourcent / 100));

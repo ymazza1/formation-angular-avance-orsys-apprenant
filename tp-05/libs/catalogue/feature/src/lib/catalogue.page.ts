@@ -1,7 +1,10 @@
 import { ChangeDetectionStrategy, Component, effect, inject } from '@angular/core';
+import { CurrencyPipe } from '@angular/common';
 import { CatalogueFacade, StockStore } from '@maison/catalogue/data-access';
 import { Piece, Produit } from '@maison/catalogue/domaine';
 import { BadgeStockComponent, CarteProduitComponent } from '@maison/catalogue/ui';
+import { PanierStore } from '@maison/panier/data-access';
+import { LignePanierComponent } from '@maison/panier/ui';
 
 const PIECES: readonly Piece[] = ['salon', 'salle-a-manger', 'chambre', 'bureau'];
 
@@ -12,9 +15,37 @@ const PIECES: readonly Piece[] = ['salon', 'salle-a-manger', 'chambre', 'bureau'
  */
 @Component({
   selector: 'mc-catalogue-page',
-  imports: [CarteProduitComponent, BadgeStockComponent],
+  imports: [CarteProduitComponent, BadgeStockComponent, LignePanierComponent, CurrencyPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <aside class="panier" aria-label="Panier">
+      <h2>Panier — {{ panier.nbArticles() }} article(s)</h2>
+
+      @if (panier.estVide()) {
+        <p>Votre panier est vide.</p>
+      } @else {
+        @for (ligne of panier.lignes(); track ligne.produitId) {
+          <mc-ligne-panier
+            [ligne]="ligne"
+            [quantite]="ligne.quantite"
+            (quantiteChange)="panier.changerQuantite(ligne.produitId, $event)"
+            (supprimer)="panier.retirer($event)"
+          />
+        }
+
+        <dl class="totaux">
+          <dt>Sous-total</dt>
+          <dd>{{ panier.sousTotal() | currency: 'EUR' }}</dd>
+          <dt>Livraison</dt>
+          <dd>{{ panier.fraisLivraison() | currency: 'EUR' }}</dd>
+          <dt>Total</dt>
+          <dd>{{ panier.total() | currency: 'EUR' }}</dd>
+        </dl>
+
+        <button type="button" (click)="panier.vider()">Vider le panier</button>
+      }
+    </aside>
+
     <header>
       <h1>Notre catalogue</h1>
 
@@ -67,6 +98,7 @@ const PIECES: readonly Piece[] = ['salon', 'salle-a-manger', 'chambre', 'bureau'
 export class CataloguePage {
   protected readonly facade = inject(CatalogueFacade);
   protected readonly stocks = inject(StockStore);
+  protected readonly panier = inject(PanierStore);
   protected readonly pieces = PIECES;
 
   constructor() {
@@ -84,9 +116,6 @@ export class CataloguePage {
   }
 
   protected ajouterAuPanier(produit: Produit): void {
-    // TODO TP 5 — étape 7
-    // Injecter PanierStore, appeler ajouter(), et afficher un récapitulatif
-    // du panier avec <mc-ligne-panier>.
-    console.log('à ajouter au panier', produit.id);
+    this.panier.ajouter(produit);
   }
 }
