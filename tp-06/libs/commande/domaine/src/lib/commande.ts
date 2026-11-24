@@ -35,34 +35,32 @@ export const FORMAT_CODE_POSTAL = /^[0-9]{5}$/;
 export const POIDS_MAX_POINT_RELAIS_KG = 30;
 export const VOLUME_MAX_POINT_RELAIS_M3 = 0.5;
 
-/** TODO TP 6 — étape 1 : seuils inclus. */
 export function accepteEnPointRelais(ligne: LignePanier): boolean {
-  throw new Error('TP 6 — accepteEnPointRelais reste à écrire');
+  return ligne.poidsKg <= POIDS_MAX_POINT_RELAIS_KG && ligne.volumeM3 <= VOLUME_MAX_POINT_RELAIS_M3;
 }
 
 /**
- * TODO TP 6 — étape 1
  * Modes proposables pour un panier donné.
  *
  * Règle métier, pas règle d'affichage : c'est la même qui servira à refuser une
  * commande arrivée par une autre voie.
  */
 export function modesDisponibles(panier: Panier): readonly ModeLivraison[] {
-  throw new Error('TP 6 — modesDisponibles reste à écrire');
+  if (panier.length === 0) return [];
+  const tousAcceptes = panier.every(accepteEnPointRelais);
+  return tousAcceptes ? ['domicile', 'point-relais', 'express'] : ['domicile', 'express'];
 }
 
-/** TODO TP 6 — étape 1 */
 export function modeEstDisponible(panier: Panier, mode: ModeLivraison): boolean {
-  throw new Error('TP 6 — modeEstDisponible reste à écrire');
+  return modesDisponibles(panier).includes(mode);
 }
 
 /**
- * TODO TP 6 — étape 1
  * Corrige un mode devenu indisponible.
  *
  * Cas réel : l'utilisateur choisit « point relais », puis ajoute un canapé.
  * Laisser la sélection invalide produirait une commande impossible à livrer.
  */
 export function modeCorrige(panier: Panier, mode: ModeLivraison): ModeLivraison {
-  throw new Error('TP 6 — modeCorrige reste à écrire');
+  return modeEstDisponible(panier, mode) ? mode : 'domicile';
 }

@@ -24,7 +24,84 @@ import { schemaCommande } from './commande.schema';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <h1>Votre commande</h1>
-    <!-- TODO TP 6 — étape 4 -->
+
+    @if (panier.estVide()) {
+      <p>Votre panier est vide.</p>
+    } @else {
+      <p class="recapitulatif">
+        {{ panier.nbArticles() }} article(s) — total {{ panier.total() | currency: 'EUR' }}
+      </p>
+
+      <!--
+        TODO TP 6 — étape 3
+        Le champ email, lié par [formField], et ses erreurs affichées après touched().
+        Le code postal, plus bas, montre la forme.
+      -->
+
+      <label>
+        Nom
+        <input [formField]="commande.nom" />
+      </label>
+
+      <label>
+        Adresse
+        <input [formField]="commande.adresse" />
+      </label>
+
+      <label>
+        Code postal
+        <input [formField]="commande.codePostal" inputmode="numeric" />
+      </label>
+      @if (commande.codePostal().pending()) {
+        <p aria-live="polite">Vérification de la zone de livraison…</p>
+      }
+      @if (commande.codePostal().touched()) {
+        @for (erreur of commande.codePostal().errors(); track $index) {
+          <p role="alert">{{ erreur.message }}</p>
+        }
+      }
+
+      <label>
+        Ville
+        <input [formField]="commande.ville" />
+      </label>
+
+      <fieldset>
+        <legend>Mode de livraison</legend>
+        @for (mode of modes(); track mode) {
+          <label>
+            <input type="radio" [value]="mode" [formField]="commande.mode" />
+            {{ libelle(mode) }}
+          </label>
+        }
+        @if (!pointRelaisPossible()) {
+          <p aria-live="polite">
+            Le point relais n'est pas proposé : votre panier contient un article volumineux.
+          </p>
+        }
+      </fieldset>
+
+      <label>
+        <input type="checkbox" [formField]="commande.accepteCgv" />
+        J'accepte les conditions générales de vente
+      </label>
+
+      <!-- TODO TP 6 — étape 3 : désactiver le bouton tant que le formulaire n'est pas valide. -->
+      <button type="button" (click)="valider()">
+        @if (envoi()) {
+          Envoi en cours…
+        } @else {
+          Valider la commande
+        }
+      </button>
+
+      @if (echec()) {
+        <p role="alert">{{ echec() }}</p>
+      }
+      @if (reference()) {
+        <p role="status">Commande {{ reference() }} enregistrée.</p>
+      }
+    }
   `,
   styleUrl: './commande.page.scss',
 })
@@ -49,8 +126,13 @@ export class CommandePage {
      * panier change. Il ne calcule pas une valeur dérivée — il répare l'état
      * saisi par l'utilisateur.
      */
-    // TODO TP 6 — étape 5
-    // Corriger le mode de livraison quand il devient indisponible.
+    effect(() => {
+      const lignes = this.panier.lignes();
+      this.modele.update((commande) => ({
+        ...commande,
+        mode: modeCorrige(lignes, commande.mode),
+      }));
+    });
   }
 
   protected libelle(mode: string): string {

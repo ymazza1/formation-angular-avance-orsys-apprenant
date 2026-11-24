@@ -1,17 +1,5 @@
-import {
-  email,
-  pattern,
-  required,
-  schema,
-  validate,
-  validateHttp,
-} from '@angular/forms/signals';
-import { Commande, FORMAT_CODE_POSTAL } from '@maison/commande/domaine';
-
-interface ReponseCodePostal {
-  valide: boolean;
-  ville?: string;
-}
+import { schema } from '@angular/forms/signals';
+import { Commande } from '@maison/commande/domaine';
 
 /**
  * Règles de validation du tunnel de commande.
@@ -24,13 +12,17 @@ interface ReponseCodePostal {
  * `base` est passée en paramètre plutôt qu'injectée : le schéma reste une
  * fonction pure de configuration.
  *
- * TODO TP 6 — étapes 2 et 3
- * Les tests de commande.schema.spec.ts décrivent chaque règle attendue, et les
- * messages exacts. Opérateurs utiles : required, email, pattern, validate,
- * validateHttp.
+ * Le schéma est vide : le formulaire s'affiche, et accepte n'importe quoi.
+ * Les tests de commande.schema.spec.ts décrivent chaque règle, et les messages
+ * exacts.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function schemaCommande(base: string) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   return schema<Commande>((c) => {
-    throw new Error('TP 6 — schemaCommande reste à écrire');
+    // TODO TP 6 — étape 1 : les règles synchrones
+    //   required, email, pattern (FORMAT_CODE_POSTAL, dans le domaine), validate pour les CGV.
+    // TODO TP 6 — étape 2 : la zone de livraison, vérifiée par l'API
+    //   validateHttp sur c.codePostal, vers `${base}/validation/code-postal/<code>`.
   });
 }
