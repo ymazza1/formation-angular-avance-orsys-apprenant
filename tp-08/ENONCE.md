@@ -175,11 +175,18 @@ Elle a été assouplie, avec ce commentaire dans `eslint.config.mjs` :
 ```js
 // La racine de composition fait exception : c'est elle qui câble les
 // providers (intercepteurs, guards), et ceux-ci vivent en data-access.
-// Deuxième dérogation de la formation — à compter, pas à banaliser.
+// Troisième dérogation de la formation (après catalogue → panier et
+// l'exception ciblée du TP 5, qu'elle absorbe) — à compter, pas à banaliser.
 ```
 
-**C'est la deuxième dérogation** (la première était `catalogue → panier` au
-TP 5). Deux questions à se poser en équipe :
+**C'est la troisième dérogation.** Les deux premières datent du TP 5 :
+`catalogue → panier`, et l'exception ciblée `allow: ['@maison/livraison/data-access']`
+qui laissait la racine enregistrer les stratégies de livraison. Celle-ci
+disparaît : la nouvelle règle ouvre **toute** la couche data-access à la racine,
+l'exception étroite n'a plus d'objet. Regardez le commentaire au-dessus de
+`allow: []` : une dérogation ciblée est devenue large.
+
+Deux questions à se poser en équipe :
 
 1. Aurait-on pu l'éviter ? Oui : en exposant `fournirAuth()` depuis une lib
    `auth/feature` qui masque la data-access. Est-ce que ça vaut une
