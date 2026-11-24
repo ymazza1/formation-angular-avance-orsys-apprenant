@@ -1,6 +1,6 @@
 # TP 10 — Audit et optimisation
 
-**Durée** 45 min
+**Durée** 45 min · **Rouges au départ** 3 (`npm run test:perf`) · tous les autres tests sont déjà verts
 
 ## Le contexte
 
@@ -19,6 +19,16 @@ revienne pas.
 npm run test:perf        # 3 rouges au départ, 8 verts à la fin
 npx nx build boutique    # doit passer sous les budgets que vous aurez posés
 ```
+
+| Après… | Rouges restants (`test:perf`) |
+| --- | --- |
+| l'ouverture du projet | 3 |
+| les étapes 1 et 2 (on mesure, on lit) | 3 |
+| l'étape 3 | 1 (le budget) |
+| l'étape 4 | 0 |
+
+`npm run test:perf` ne fait pas partie de `npx nx run-many -t test` : lancez-le
+à part.
 
 Les tests de `tools/perf/perf.spec.ts` ne mesurent pas la performance — ils
 vérifient que les **garde-fous** sont en place. C'est la même démarche qu'au
@@ -78,7 +88,7 @@ Trois choses à chercher dans ce que vous avez relevé.
 
 ### Le poids du tunnel de commande
 
-`@angular/forms/signals` représente l'essentiel des 66 ko. C'est le prix d'une
+`@angular/forms/signals` représente l'essentiel des 68 ko. C'est le prix d'une
 fonctionnalité réelle, pas du gaspillage — mais il est **payé au chargement de
 la route**, pas au démarrage. C'est exactement ce que le lazy loading achète.
 
@@ -167,7 +177,7 @@ sans dimensions décale la page quand elle arrive, et dégrade le CLS.
 
 Rejouez le build.
 
-**Surprise : le bundle a grossi.** De 302,6 ko à environ 308 ko. `NgOptimizedImage`
+**Surprise : le bundle a grossi.** De 302,7 ko à environ 308 ko. `NgOptimizedImage`
 est du code en plus — une directive, sa logique de `srcset`, son chargement
 paresseux.
 
