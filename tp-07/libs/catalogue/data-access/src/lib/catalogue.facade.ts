@@ -22,7 +22,7 @@ import {
 } from 'rxjs';
 import { CatalogueApi, Facettes, PAGE_VIDE, PageProduits } from './catalogue.api';
 
-const DELAI_FRAPPE_MS = 300;
+export const DELAI_FRAPPE_MS = 300;
 const TENTATIVES = 2;
 
 interface EtatCatalogue {
@@ -37,7 +37,7 @@ const ETAT_INITIAL: EtatCatalogue = { page: PAGE_VIDE, erreur: null, chargement:
  * Façade du catalogue — version flux du TP 3. Elle FONCTIONNE.
  *
  * ┌────────────────────────────────────────────────────────────────────────┐
- * │ TP 7 — vous allez la réécrire en signal-first.                         │
+ * │ TODO TP 7 — étapes 1 à 3 : la réécrire en signal-first.               │
  * │                                                                        │
  * │ Remplacez le pipeline par un `httpResource`. Ce qui doit disparaître : │
  * │                                                                        │
