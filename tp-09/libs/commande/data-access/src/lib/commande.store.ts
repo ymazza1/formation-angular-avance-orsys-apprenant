@@ -41,17 +41,28 @@ export class CommandeStore {
   });
 
   /**
-   * TODO TP 9 — étape 2
-   * Envoie la commande. Ne rejette JAMAIS : chaque issue est un statut.
+   * Envoie la commande. Fourni : le chemin du succès, corps compris.
    *
-   * Points vérifiés par les tests :
+   * TODO TP 9 — étape 2
+   * Ne rejette JAMAIS : chaque issue est un statut. Les tests attendent encore :
    *   - un panier vide ne déclenche aucune requête ;
-   *   - le corps n'envoie que produitId et quantite par ligne ;
-   *   - le panier n'est vidé QU'EN CAS DE SUCCÈS ;
+   *   - le panier est vidé, et SEULEMENT en cas de succès ;
+   *   - une erreur HTTP devient un statut (voir `interpreter`) ;
    *   - l'état d'envoi se termine, y compris après une erreur.
    */
   async envoyer(commande: Commande, lignes: Panier): Promise<ResultatCommande> {
-    throw new Error('TP 9 — CommandeStore.envoyer reste à écrire');
+    // Le corps n'envoie que produitId et quantite : le serveur refait le calcul
+    // des prix. Un client qui envoie ses propres montants invite à la fraude.
+    const reponse = await firstValueFrom(
+      this.http.post<ReponseCommande>(`${this.base}/commandes`, {
+        ...commande,
+        lignes: lignes.map((ligne) => ({
+          produitId: ligne.produitId,
+          quantite: ligne.quantite,
+        })),
+      }),
+    );
+    return this.conclure({ statut: 'enregistree', reference: reponse.id });
   }
 
   /**
